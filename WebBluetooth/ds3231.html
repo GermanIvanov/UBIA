@@ -1,0 +1,74 @@
+<html>
+<body>
+  <button onclick="ble.connect()">Connect</button>
+  <button onclick="ble.disconnect()">Disconnect</button>
+  <button onclick="GetDate()">GetDate</button>
+  
+  <div>
+    <div id="ctime" style="font-size: 200%; margin: 10px;"></div>
+    <div id="temp" style="font-size: 150%; margin: 10px;"></div>
+    <div id="raw"></div>
+    <input id="dt" style="margin:10px;" type="datetime-local" onchange="setDate()"> 
+  </div>
+  <div id="error"></div>
+</body>
+<script src="ble.js"></script>
+<script src="ds3231.js"></script>
+<script>
+  var ble;
+  var sensor;
+  document.addEventListener('DOMContentLoaded', () => {
+    sensor = new ds3231({
+      log, 
+      datetimeChanged:(d) =>{
+        document.getElementById("ctime").innerText = d.toLocaleString("ru");
+      },
+      tempChanged:(ft) => {
+        console.log(ft);
+        document.getElementById("temp").innerText = ft;
+      }
+    });
+    ble = new Ble({
+      // log,
+      onerror: (e,info)=>{
+        document.getElementById("error").innerHTML+="<li>"+info;
+      },
+      onsetup: (e) =>{
+        sensor.Init(e);
+      },
+      onloop: (e,idx,value) => {
+       // log(value, 'din');
+        sensor.Loop(e,idx,value); 
+      }
+    });
+  });
+
+
+  function setDate(e)
+  {
+   var d = document.getElementById("dt").value;
+   sensor.setDateTime(d);
+  }
+
+
+  function log(value, type) {
+    let a = [];
+    if (type == 'din' || type == 'dout' || type=='raw') {
+      let dir = type == 'din' ? '<< ' : '>>';
+      for (let i = 0; i < value.byteLength; i++) {
+        let value1 = type == 'dout' ? value[i] : value.getUint8(i);
+        a.push('0x' + ('00' + value1.toString(16)).slice(-2));
+      }
+      if(type=='raw'){
+        document.getElementById("raw").innerText=a;
+      }else{
+        console.log(dir, a);
+      }
+    } else {
+      console.log(value);
+    }
+  }
+
+
+  </script>
+</html>
